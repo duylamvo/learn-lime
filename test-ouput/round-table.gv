@@ -1,0 +1,36 @@
+// LIME
+digraph {
+	X [label="Instance X"]
+	X_segment [label="X - Segmentation"]
+	X_comma [label="X'"]
+	Z_comma [label="Sampling Neighbors Z'"]
+	Z [label=Z]
+	F [label="f(Z)"]
+	P [label="π(x,z)"]
+	G [label="g(z') = W*Z'" color=turquoise style=filled]
+	L [label="Loss of f(z) ~ g(z') with weight π"]
+	O [label="Optimizer: argmin { loss }"]
+	R [label="W^ ~ Weights of features" color=turquoise style=filled]
+	X -> X_segment
+	X_segment -> X_comma
+	X_comma -> Z_comma
+	Z_comma -> Z
+	Z -> F
+	Z -> P [label="Similarity of x to z"]
+	Z_comma -> G
+	F -> L
+	G -> L
+	P -> L
+	L -> O
+	O -> R
+	subgraph sampling_z {
+		node [shape=box style=dashed]
+		S [label="Sampling Neighbors Z'"]
+		A [label="Z'"]
+		B [label="Z'"]
+		C [label="Z'"]
+		S -> B
+		S -> C
+		S -> A
+	}
+}
