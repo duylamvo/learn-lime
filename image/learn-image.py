@@ -204,6 +204,7 @@ def main():
 
     unique_segments = np.unique(img_segments)
     top_k_idx = sorted_idx[-top_k:]
+
     _segments_to_show = unique_segments[top_k_idx]
     xai_mask2d = np.isin(img_segments, _segments_to_show).astype(int)
     xai_mask3d = _mask_to_3d(xai_mask2d)
