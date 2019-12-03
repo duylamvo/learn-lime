@@ -1,12 +1,17 @@
 import seglearn as sl
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
+from datetime import timedelta
 from sklearn.linear_model import Ridge
 from sklearn.metrics import pairwise_distances
+from keras.models import load_model
+
+from temporalnn.utils.backend import tf_patch_rtx
 
 
-def viz_features(x_original, n_features=10, width=100, overlap_rate=0):
+def viz_features(x_original, n_features=10, width=32, overlap_rate=0):
     # If plot all segments, it will become multiple time series with same width
     # However, it is hard to see, and also because the index is overlap
 
@@ -59,15 +64,16 @@ def _pi(x, z, gamma=0.1):
     return np.asscalar(pi)
 
 
-def _predict(x, fn=None):
-    # Todo: get f(z) or model here
-    return np.random.random()
+def _predict(x, fn=None, *args):
+    
+    return fn(x, *args)
 
 
-def segment(x, n_features, steps=100, overlap_rate=0.):
+def segment(x, n_features, steps_per_segment=32, overlap_rate=0.):
+    assert steps_per_segment < len(x)
     # Given an TS x as array
     # create segments
-    segmenter = sl.transform.SegmentX(steps, overlap=overlap_rate)
+    segmenter = sl.transform.SegmentX(steps_per_segment, overlap=overlap_rate)
     segmenter.fit([x])
 
     # Overlap_rate r, then n_segments = [len(series) / (width * (1-r))] - 1
@@ -121,31 +127,42 @@ def get_top_k(weights, top_k):
 
 
 def test_main():
-    N_FEATURES = 10
-    SAMPLE_SIZE = 100
-    TOP_K = 3
-    X_STEPS = 100
+    tf_patch_rtx()
 
-    # Random walk
-    # y(t) = B0 + X(t-1) + e(t)
-    # t=0
-    steps = 1000
-    np.random.seed(1)
-    random_walk = list()
-    random_walk.append(np.random.randint(-1, 2))
-    for i in range(1, steps):
-        # B0 + e(t)
-        movement = np.random.randint(-1, 2)
-        y = random_walk[i-1] + movement
-        random_walk.append(y)
-    # plt.plot(random_walk)
-    # plt.show()
+    N_FEATURES = 10
+    SAMPLE_SIZE = 1000
+    TOP_K = 3
+    X_STEPS = 32
+
+    # Loading data for demo
+    ts = pd.read_csv("data/time-series/climate_demo_stations_44.csv")
+    ts.measure_date = pd.to_datetime(ts.measure_date)
+    ts = ts.set_index("measure_date").sort_index()
+
+    # Select univariate variable
+    temperature = ts["tmk"]
+    temperature_till_2016 = temperature[temperature.index.year <= 2016]
+
+    # Select some data for checking predictions
+    ts_data = temperature_till_2016[-X_STEPS:]
+    model = load_model("models/uts_32_1.h5")
+
+    for i in range(64):
+        data = np.asarray(ts_data[-X_STEPS:])\
+            .reshape(1, X_STEPS, 1)
+        v = model.predict(data).flatten().item()
+        t = pd.Series(v, index=[max(ts_data.index) + timedelta(days=1)])
+        ts_data = ts_data.append(t)
+    
+    plt.plot(temperature_till_2016)
+    plt.plot(ts_data)
+    plt.show()
 
     # get an instance x
-    x_original = np.array(random_walk)
-    x_segments = segment(x_original, N_FEATURES)
+    x_original = np.array(temperature_till_2016[-X_STEPS:])
+    x_segments = segment(x_original, N_FEATURES, steps_per_segment=4)
 
-    viz_features(x_original, N_FEATURES, X_STEPS, overlap_rate=0)
+    viz_features(x_original, N_FEATURES, 4, overlap_rate=0)
 
     # Neighbors
     samples_set = neighbors(x_original,
@@ -187,4 +204,3 @@ def test_main():
     plt.show()
 
 
-test_main()
