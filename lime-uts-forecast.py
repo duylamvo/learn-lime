@@ -65,7 +65,6 @@ def _pi(x, z, gamma=0.1):
 
 
 def _predict(x, fn=None, *args):
-    
     return fn(x, *args)
 
 
@@ -135,7 +134,7 @@ def test_main():
     X_STEPS = 32
 
     # Loading data for demo
-    ts = pd.read_csv("data/time-series/climate_demo_stations_44.csv")
+    ts = pd.read_csv("data/ts/climate_demo_stations_44.csv")
     ts.measure_date = pd.to_datetime(ts.measure_date)
     ts = ts.set_index("measure_date").sort_index()
 
@@ -153,7 +152,7 @@ def test_main():
         v = model.predict(data).flatten().item()
         t = pd.Series(v, index=[max(ts_data.index) + timedelta(days=1)])
         ts_data = ts_data.append(t)
-    
+
     plt.plot(temperature_till_2016)
     plt.plot(ts_data)
     plt.show()
@@ -202,5 +201,3 @@ def test_main():
                  color="red",
                  alpha=alpha)
     plt.show()
-
-
